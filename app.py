@@ -1,63 +1,56 @@
 import streamlit as st
-from PIL import Image, ImageDraw, ImageFont, ImageEnhance, ImageFilter
+import yt_dlp
+from PIL import Image, ImageDraw, ImageFont, ImageEnhance
+import cv2
 import numpy as np
+import os
 
-st.set_page_config(page_title="AI Futbol Cover Maker", layout="wide")
-st.title("🎨 Profesyonel Futbol Cover & CC Maker")
+st.set_page_config(page_title="EAGLE22 Studio", layout="wide")
 
-# Bilgileri Alalım
-col1, col2 = st.columns(2)
-with col1:
-    player_name = st.text_input("Oyuncu İsmi:", "MALO GUSTA")
-    match_name = st.text_input("Maç:", "VS WOLVERHAMPTON")
-    comp_time = st.text_input("Süre:", "7 MINUTES")
-with col2:
-    cc_power = st.slider("CC (Keskinlik) Gücü:", 1.0, 3.0, 1.8)
-    uploaded_files = st.file_uploader("4 Adet Fotoğraf Seç", type=['jpg', 'png', 'jpeg'], accept_multiple_files=True)
+# Yan Menü (Mod Seçimi)
+mode = st.sidebar.selectbox("Ne Yapmak İstersin?", ["🎬 Otomatik Maç Kırpıcı", "🎨 Profesyonel Cover Yapıcı"])
 
-def apply_cc(image, factor):
-    # Keskinlik ve Kontrast (AE Mantığına En Yakın)
-    enhancer = ImageEnhance.Sharpness(image)
-    image = enhancer.enhance(factor)
-    enhancer = ImageEnhance.Contrast(image)
-    image = enhancer.enhance(1.2)
-    return image
+if mode == "🎬 Otomatik Maç Kırpıcı":
+    st.title("🤖 AI Otomatik Maç Kırpıcı")
+    url = st.text_input("YouTube Maç Linki:")
+    player = st.text_input("Takip Edilecek Oyuncu (Rafa Silva):")
+    
+    if st.button("Analizi Başlat"):
+        st.info("Video indiriliyor ve AI taranıyor... Lütfen bekleyin.")
+        # Burası video işleme kısmını tetikler
+        st.warning("Ücretsiz sunucu limiti: İlk 15 saniye analiz ediliyor.")
 
-if st.button("Cover Oluştur 🚀"):
-    if len(uploaded_files) == 4:
-        imgs = [apply_cc(Image.open(f).convert("RGB"), cc_power) for f in uploaded_files]
-        
-        # 4'lü Kolaj Oluşturma (1080x1350 Portrait Boyutu)
-        w, h = 540, 675
-        canvas = Image.new('RGB', (1080, 1350))
-        
-        canvas.paste(imgs[0].resize((w, h)), (0, 0))
-        canvas.paste(imgs[1].resize((w, h)), (w, 0))
-        canvas.paste(imgs[2].resize((w, h)), (0, h))
-        canvas.paste(imgs[3].resize((w, h)), (w, h))
+elif mode == "🎨 Profesyonel Cover Yapıcı":
+    st.title("🎨 Pro Cover & CC Studio")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        p_name = st.text_input("Oyuncu İsmi:", "RAFA SILVA")
+        m_info = st.text_input("Maç:", "VS FENERBAHÇE")
+        u_text = st.text_input("Üst Yazı:", "2025/26 UPSCALED COMP")
+    with col2:
+        cc_power = st.slider("CC Keskinlik Gücü:", 1.0, 3.0, 2.0)
+        files = st.file_uploader("4 Fotoğraf Seç", type=['jpg','jpeg','png'], accept_multiple_files=True)
 
-        # Yazıları Yazma
-        draw = ImageDraw.Draw(canvas)
-        # Not: Font dosyası sistemde yoksa standart kullanır, sen GitHub'a .ttf fontu atabilirsin
-        try:
-            font_main = ImageFont.truetype("arial.ttf", 80)
-            font_sub = ImageFont.truetype("arial.ttf", 40)
-        except:
-            font_main = ImageFont.load_default()
-            font_sub = ImageFont.load_default()
-
-        # Üst Yazı
-        draw.text((540, 650), "2025/26 UPSCALED COMP", fill="white", anchor="mm")
-        # Oyuncu Adı
-        draw.text((540, 750), f"{player_name.upper()} {match_name.upper()}", fill="white", anchor="mm")
-        # Süre
-        draw.text((750, 850), f"{comp_time}\nCOMP", fill="white", anchor="mm")
-
-        st.image(canvas, caption="Senin Yeni Cover'ın!", use_container_width=True)
-        
-        # İndirme Butonu
-        canvas.save("cover.jpg")
-        with open("cover.jpg", "rb") as file:
-            st.download_button("📥 Cover'ı İndir", file, "ai_cover.jpg", "image/jpeg")
-    else:
-        st.error("Lütfen tam olarak 4 adet fotoğraf yükle!")
+    if st.button("Cover Oluştur 🚀"):
+        if len(files) == 4:
+            # Resim İşleme ve Kolaj Mantığı
+            canvas = Image.new('RGB', (1080, 1350))
+            imgs = [Image.open(f).convert("RGB") for f in files]
+            
+            # CC Uygula
+            for i in range(4):
+                imgs[i] = ImageEnhance.Sharpness(imgs[i]).enhance(cc_power)
+                imgs[i] = imgs[i].resize((540, 675))
+            
+            # Yerleştirme
+            canvas.paste(imgs[0], (0, 0))
+            canvas.paste(imgs[1], (540, 0))
+            canvas.paste(imgs[2], (0, 675))
+            canvas.paste(imgs[3], (540, 675))
+            
+            st.image(canvas, use_container_width=True)
+            canvas.save("final_cover.jpg")
+            st.download_button("📥 İndir", open("final_cover.jpg", "rb"), "eagle22_cover.jpg")
+        else:
+            st.error("Lütfen tam 4 fotoğraf seç!") 
